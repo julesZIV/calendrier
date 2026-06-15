@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Calendrier</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --rose:    #e8a0b0;
+  --rose-l:  #fdf0f3;
+  --rose-d:  #c0607a;
+  --text:    #2d2d2d;
+  --text-s:  #888;
+  --border:  #ecdde1;
+  --bg:      #faf8f8;
+  --white:   #fff;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  min-height:100vh;
+  padding:2rem 1rem;
+  color:var(--text);
+}
+
+.minion-header{
+  display:flex;align-items:center;justify-content:center;
+  gap:.75rem;margin-bottom:1.5rem;
+}
+.minion-title{font-size:1.4rem;font-weight:700;color:var(--text);letter-spacing:-.3px;}
+.minion-svg{display:none;}
+
+.cal{
+  max-width:660px;margin:0 auto;
+  background:var(--white);
+  border-radius:16px;
+  border:1px solid var(--border);
+  box-shadow:0 2px 16px rgba(0,0,0,.06);
+  padding:1.5rem;
+}
+
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;}
+.nav-btn{
+  background:none;border:1px solid var(--border);border-radius:8px;
+  width:34px;height:34px;cursor:pointer;font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-s);transition:all .15s;
+}
+.nav-btn:hover{border-color:var(--rose);color:var(--rose-d);}
+.month-label{font-size:1.1rem;font-weight:600;color:var(--text);}
+.today-btn{
+  background:var(--rose-l);border:1px solid var(--rose);border-radius:8px;
+  padding:5px 14px;cursor:pointer;font-size:12px;font-weight:600;
+  color:var(--rose-d);font-family:'DM Sans',sans-serif;transition:all .15s;
+}
+.today-btn:hover{background:var(--rose);color:var(--white);}
+
+.share-bar{
+  display:flex;align-items:center;gap:8px;
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:10px;padding:8px 12px;margin-bottom:1.25rem;
+}
+.share-url{flex:1;font-size:11px;color:var(--text-s);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.share-copy-btn{
+  background:var(--rose-l);border:1px solid var(--rose);border-radius:6px;
+  padding:4px 10px;font-size:11px;cursor:pointer;color:var(--rose-d);
+  font-weight:600;white-space:nowrap;font-family:'DM Sans',sans-serif;transition:all .15s;
+}
+.share-copy-btn:hover{background:var(--rose);color:#fff;}
+.share-icon{font-size:14px;}
+
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:1rem;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-s);font-weight:500;}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+.weekdays{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;}
+.weekday{text-align:center;font-size:10px;color:#bbb;padding:5px 0;font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
+.weekday.active-day{color:var(--rose-d);}
+
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.day{
+  min-height:64px;border-radius:10px;
+  border:1px solid transparent;
+  padding:5px;background:transparent;
+  transition:all .12s;
+}
+.day.bookable{cursor:pointer;}
+.day.bookable:hover{background:var(--rose-l);border-color:var(--rose);}
+.day.other-month{opacity:.25;cursor:default;}
+.day.past{cursor:not-allowed;}
+.day.past .day-num{color:#ddd;}
+.day.blocked{cursor:not-allowed;}
+.day.blocked .day-num{color:#e0e0e0;}
+.day.today{background:var(--rose-l);border-color:var(--rose);}
+.day.today .day-num{color:var(--rose-d);font-weight:700;}
+.day.selected{background:var(--rose-d);border-color:var(--rose-d);}
+.day.selected .day-num{color:#fff;}
+.day.selected .ev-pill{background:rgba(255,255,255,.2);color:#fff;border-color:transparent;}
+.day-num{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.events{display:flex;flex-direction:column;gap:2px;}
+.ev-pill{font-size:9px;padding:1px 5px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:var(--rose-l);color:var(--rose-d);font-weight:600;border:1px solid var(--rose);}
+.more-ev{font-size:9px;color:#ccc;margin-top:1px;}
+.avail-dot{width:5px;height:5px;border-radius:50%;background:var(--rose);display:inline-block;margin-top:3px;}
+
+.panel{
+  margin-top:1.25rem;
+  border-radius:12px;
+  background:var(--bg);
+  border:1px solid var(--border);
+  padding:1.25rem;
+}
+.panel-title{font-size:1rem;font-weight:600;color:var(--text);margin-bottom:2px;}
+.panel-sub{font-size:11px;color:var(--text-s);margin-bottom:1rem;font-weight:500;}
+.ev-list{display:flex;flex-direction:column;gap:6px;}
+.ev-row{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;border-radius:10px;
+  background:var(--white);border:1px solid var(--border);
+}
+.ev-dot{width:7px;height:7px;border-radius:50%;background:var(--rose);flex-shrink:0;}
+.ev-info{flex:1;}
+.ev-name{font-size:13px;font-weight:600;color:var(--text);}
+.ev-time{font-size:11px;color:var(--text-s);}
+.ev-actions{display:flex;gap:6px;align-items:center;}
+.ev-del{background:none;border:none;cursor:pointer;color:#ddd;font-size:16px;line-height:1;}
+.ev-del:hover{color:#e57373;}
+.gcal-inline{
+  display:flex;align-items:center;gap:3px;
+  font-size:10px;font-weight:600;color:var(--text-s);
+  text-decoration:none;
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:6px;padding:3px 8px;white-space:nowrap;transition:all .12s;
+}
+.gcal-inline:hover{border-color:var(--rose);color:var(--rose-d);}
+
+.empty-msg{font-size:12px;color:var(--text-s);text-align:center;padding:1rem 0;}
+.blocked-msg{font-size:12px;color:#ccc;text-align:center;padding:1rem 0;display:flex;flex-direction:column;align-items:center;gap:6px;}
+
+.add-form{display:flex;flex-direction:column;gap:10px;margin-top:1rem;border-top:1px solid var(--border);padding-top:1rem;}
+.form-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.add-form input,.add-form select{
+  font-size:13px;padding:8px 12px;border-radius:8px;
+  border:1px solid var(--border);background:var(--white);color:var(--text);
+  font-family:'DM Sans',sans-serif;font-weight:500;
+}
+.add-form input:focus,.add-form select:focus{outline:none;border-color:var(--rose);}
+.add-form input[type=text]{flex:1;min-width:160px;}
+.add-form select{width:110px;}
+.add-btn{
+  background:var(--rose-d);color:#fff;
+  border:none;border-radius:8px;
+  padding:8px 16px;font-size:13px;cursor:pointer;
+  font-weight:600;white-space:nowrap;
+  font-family:'DM Sans',sans-serif;transition:all .15s;
+}
+.add-btn:hover{background:#a84f65;}
+.add-btn:disabled{background:#ddd;color:#aaa;cursor:not-allowed;}
+.error-msg{font-size:12px;color:#e57373;font-weight:500;}
+.loading-bar{text-align:center;padding:1rem;color:var(--text-s);font-size:13px;}
+
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;z-index:100;}
+.modal{
+  background:#fff;border-radius:16px;padding:1.75rem;
+  max-width:380px;width:90%;
+  border:1px solid var(--border);
+  box-shadow:0 8px 40px rgba(0,0,0,.12);
+}
+.modal-emoji{font-size:2rem;text-align:center;margin-bottom:.5rem;}
+.modal-title{font-size:1.15rem;font-weight:700;color:var(--text);text-align:center;margin-bottom:.25rem;}
+.modal-sub{font-size:12px;color:var(--text-s);text-align:center;margin-bottom:1.25rem;}
+.modal-ev-info{
+  background:var(--rose-l);border-radius:10px;padding:10px 14px;
+  margin-bottom:1.25rem;font-size:13px;
+  border-left:3px solid var(--rose);
+}
+.modal-ev-info strong{display:block;font-size:14px;color:var(--rose-d);margin-bottom:2px;}
+.modal-ev-info span{color:var(--text-s);}
+.modal-btns{display:flex;flex-direction:column;gap:8px;}
+.gcal-btn{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;border-radius:10px;
+  border:1px solid var(--border);background:var(--bg);
+  cursor:pointer;font-size:13px;font-weight:500;
+  color:var(--text);text-decoration:none;
+  transition:all .12s;font-family:'DM Sans',sans-serif;
+}
+.gcal-btn:hover{border-color:var(--rose);background:var(--rose-l);}
+.gcal-icon{width:20px;height:20px;flex-shrink:0;}
+.gcal-btn-label{display:flex;flex-direction:column;}
+.gcal-btn-sub{font-size:11px;color:var(--text-s);font-weight:400;}
+.skip-btn{
+  background:none;border:none;cursor:pointer;
+  font-size:12px;color:#ccc;padding:6px 0;
+  text-align:center;width:100%;font-family:'DM Sans',sans-serif;
+}
+.skip-btn:hover{color:#aaa;}
+
+.banana-row{display:none;}
+</style>
+</head>
+<body>
+
+<div class="minion-header">
+  <div class="minion-title">Mon Calendrier 🌸</div>
+</div>
+
+<div class="cal">
+  <div class="banana-row">    </div>
+
+  <div class="header">
+    <button class="nav-btn" onclick="changeMonth(-1)">◀</button>
+    <span class="month-label" id="month-label"></span>
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="today-btn" onclick="goToday()">Aujourd'hui</button>
+      <button class="nav-btn" onclick="changeMonth(1)">▶</button>
+    </div>
+  </div>
+
+  <div class="share-bar">
+    <span class="share-icon">🔗</span>
+    <span style="font-size:12px;font-weight:700;color:#1565C0;white-space:nowrap">Partager :</span>
+    <span class="share-url" id="share-url"></span>
+    <button class="share-copy-btn" onclick="copyShareLink()">📋 Copier</button>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#66BB6A"></div> Dispo</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#1565C0"></div> RDV pris</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ddd"></div> Indispo</div>
+  </div>
+
+  <div class="weekdays">
+    <div class="weekday">Lun</div>
+    <div class="weekday active-day">Mar</div>
+    <div class="weekday active-day">Mer</div>
+    <div class="weekday active-day">Jeu</div>
+    <div class="weekday">Ven</div>
+    <div class="weekday">Sam</div>
+    <div class="weekday active-day">Dim</div>
+  </div>
+
+  <div class="grid" id="cal-grid"></div>
+
+  <div class="panel">
+    <div class="panel-title" id="panel-title"> Choisis un jour !</div>
+    <div class="panel-sub" id="panel-sub"></div>
+    <div class="ev-list" id="ev-list"></div>
+    <div class="add-form" id="add-form" style="display:none">
+      <div class="form-row">
+        <input type="text" id="ev-name" placeholder="Ton prénom / motif du RDV "/>
+        <select id="ev-time"></select>
+        <button class="add-btn" id="add-btn" onclick="addEvent()"> Réserver !</button>
+      </div>
+      <div class="error-msg" id="error-msg" style="display:none"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modal" style="display:none" onclick="if(event.target.id==='modal')closeModal()">
+  <div class="modal">
+    <div class="modal-emoji">🎉🎉</div>
+    <div class="modal-title">RDV confirmé !</div>
+    <div class="modal-sub">Ajoute-le à ton agenda Google</div>
+    <div class="modal-ev-info" id="modal-ev-info"></div>
+    <div class="modal-btns">
+      <a id="gcal-link-user" class="gcal-btn" href="#" target="_blank" rel="noopener">
+        <svg class="gcal-icon" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+          <rect x="6" y="6" width="36" height="36" rx="4" fill="#fff" stroke="#e0e0e0" stroke-width="1"/>
+          <rect x="6" y="14" width="36" height="6" fill="#4285F4"/>
+          <path d="M6 20h36v18a4 4 0 01-4 4H10a4 4 0 01-4-4V20z" fill="#fff"/>
+          <rect x="14" y="6" width="4" height="8" rx="2" fill="#4285F4"/>
+          <rect x="30" y="6" width="4" height="8" rx="2" fill="#4285F4"/>
+          <text x="24" y="36" text-anchor="middle" font-size="13" font-weight="bold" fill="#4285F4" font-family="system-ui">G</text>
+        </svg>
+        <div class="gcal-btn-label">
+          <span>Ajouter à mon Google Agenda</span>
+          <span class="gcal-btn-sub">Pour toi (la personne qui prend le RDV)</span>
+        </div>
+      </a>
+      <a id="gcal-link-juju" class="gcal-btn" href="#" target="_blank" rel="noopener">
+        <svg class="gcal-icon" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+          <rect x="6" y="6" width="36" height="36" rx="4" fill="#fff" stroke="#e0e0e0" stroke-width="1"/>
+          <rect x="6" y="14" width="36" height="6" fill="#34A853"/>
+          <path d="M6 20h36v18a4 4 0 01-4 4H10a4 4 0 01-4-4V20z" fill="#fff"/>
+          <rect x="14" y="6" width="4" height="8" rx="2" fill="#34A853"/>
+          <rect x="30" y="6" width="4" height="8" rx="2" fill="#34A853"/>
+          <text x="24" y="36" text-anchor="middle" font-size="13" font-weight="bold" fill="#34A853" font-family="system-ui">G</text>
+        </svg>
+        <div class="gcal-btn-label">
+          <span>Ajouter à l'agenda de Juju 💛</span>
+          <span class="gcal-btn-sub">juju.zivkovic@gmail.com</span>
+        </div>
+      </a>
+      <button class="skip-btn" onclick="closeModal()">Ignorer pour l'instant</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL  = 'https://aqkyfrjxhqswbjpsowjy.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFxa3lmcmp4aHFzd2JqcHNvd2p5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MTczNTAsImV4cCI6MjA5NzA5MzM1MH0.22V01whXLFU_P1hGfepVutWwWeUl78TOklHCjKRQkQM';
+const OWNER_EMAIL   = 'juju.zivkovic@gmail.com';
+const TABLE         = 'rendez_vous';
+
+const MONTHS  = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const DAYS_FR = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+const ALLOWED = new Set([0,2,3,4]);
+const now = new Date();
+let cur = {y:now.getFullYear(),m:now.getMonth()};
+let selected=null, events={};
+
+async function sbFetch(path,opts={}){
+  const res=await fetch(`${SUPABASE_URL}/rest/v1/${path}`,{
+    headers:{'apikey':SUPABASE_ANON,'Authorization':`Bearer ${SUPABASE_ANON}`,'Content-Type':'application/json','Prefer':'return=representation',...opts.headers},
+    ...opts
+  });
+  const text=await res.text();
+  return text?JSON.parse(text):[];
+}
+async function loadAll(){
+  const rows=await sbFetch(`${TABLE}?select=*&order=time.asc`);
+  events={};
+  rows.forEach(r=>{if(!events[r.date])events[r.date]=[];events[r.date].push({id:r.id,name:r.name,time:r.time});});
+}
+async function insertEv(date,time,name){return(await sbFetch(TABLE,{method:'POST',body:JSON.stringify({date,time,name})}))[0];}
+async function deleteEv(id){await sbFetch(`${TABLE}?id=eq.${id}`,{method:'DELETE'});}
+
+setInterval(async()=>{await loadAll();render();if(selected)renderPanel();},10000);
+
+document.getElementById('share-url').textContent=window.location.href;
+function copyShareLink(){
+  navigator.clipboard.writeText(window.location.href);
+  const b=document.querySelector('.share-copy-btn');
+  b.textContent='✅ Copié !';
+  setTimeout(()=>b.textContent='📋 Copier',2000);
+}
+
+function dateKey(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+function todayKey(){return dateKey(now.getFullYear(),now.getMonth(),now.getDate());}
+function isPast(y,m,d){return new Date(y,m,d)<new Date(now.getFullYear(),now.getMonth(),now.getDate());}
+function isAllowed(y,m,d){return ALLOWED.has(new Date(y,m,d).getDay());}
+
+function getSlots(){
+  const s=[];let h=16,mn=30;
+  while(h<21||(h===21&&mn===0)){s.push(`${String(h).padStart(2,'0')}:${String(mn).padStart(2,'0')}`);mn+=30;if(mn>=60){mn-=60;h++;}}
+  return s;
+}
+function getFutureSlots(key){
+  const [y,m,d]=key.split('-').map(Number);
+  const isToday=new Date(y,m-1,d).getTime()===new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime();
+  const taken=new Set((events[key]||[]).map(e=>e.time));
+  return getSlots().filter(slot=>{
+    if(taken.has(slot))return false;
+    if(isToday){const[sh,sm]=slot.split(':').map(Number);return sh*60+sm>now.getHours()*60+now.getMinutes();}
+    return true;
+  });
+}
+
+function gcalUrl(title,dateStr,timeStr,durationMin=30,calEmail=null){
+  const[y,m,d]=dateStr.split('-').map(Number);
+  const[h,mn]=timeStr.split(':').map(Number);
+  const pad=n=>String(n).padStart(2,'0');
+  const s=`${y}${pad(m)}${pad(d)}T${pad(h)}${pad(mn)}00`;
+  let eh=h,emn=mn+durationMin;if(emn>=60){emn-=60;eh++;}
+  const e=`${y}${pad(m)}${pad(d)}T${pad(eh)}${pad(emn)}00`;
+  const p=new URLSearchParams({action:'TEMPLATE',text:title,dates:`${s}/${e}`,details:'RDV réservé via le calendrier '});
+  if(calEmail)p.set('src',calEmail);
+  return `https://calendar.google.com/calendar/render?${p.toString()}`;
+}
+
+function openModal(key,ev){
+  const[y,m,d]=key.split('-').map(Number);
+  const dow=new Date(y,m-1,d).getDay();
+  document.getElementById('modal-ev-info').innerHTML=`<strong> ${ev.name}</strong><span>${DAYS_FR[dow]} ${d} ${MONTHS[m-1]} ${y} · ${ev.time}</span>`;
+  document.getElementById('gcal-link-user').href=gcalUrl(ev.name,key,ev.time);
+  document.getElementById('gcal-link-juju').href=gcalUrl(ev.name,key,ev.time,30,OWNER_EMAIL);
+  document.getElementById('modal').style.display='flex';
+}
+function closeModal(){document.getElementById('modal').style.display='none';}
+
+function changeMonth(dir){cur.m+=dir;if(cur.m>11){cur.m=0;cur.y++;}if(cur.m<0){cur.m=11;cur.y--;}render();}
+function goToday(){cur.y=now.getFullYear();cur.m=now.getMonth();render();}
+
+function render(){
+  document.getElementById('month-label').textContent=`${MONTHS[cur.m]} ${cur.y}`;
+  const grid=document.getElementById('cal-grid');grid.innerHTML='';
+  const first=new Date(cur.y,cur.m,1);
+  const startDow=(first.getDay()+6)%7;
+  const dim=new Date(cur.y,cur.m+1,0).getDate();
+  const dip=new Date(cur.y,cur.m,0).getDate();
+  const cells=[];
+  for(let i=startDow-1;i>=0;i--)cells.push({d:dip-i,pm:-1});
+  for(let d=1;d<=dim;d++)cells.push({d,pm:0});
+  let n=1;while(cells.length%7!==0)cells.push({d:n++,pm:1});
+
+  cells.forEach(c=>{
+    const absM=cur.m+c.pm;
+    const absY=absM<0?cur.y-1:absM>11?cur.y+1:cur.y;
+    const realM=((absM%12)+12)%12;
+    const key=dateKey(absY,realM,c.d);
+    const past=isPast(absY,realM,c.d);
+    const allowed=isAllowed(absY,realM,c.d);
+    const bookable=!past&&allowed&&c.pm===0;
+    const isSel=key===selected;
+    const evs=events[key]||[];
+    const hasSlots=bookable&&getFutureSlots(key).length>0;
+
+    const div=document.createElement('div');
+    let cls='day';
+    if(c.pm!==0)cls+=' other-month';
+    else if(past)cls+=' past';
+    else if(!allowed)cls+=' blocked';
+    else cls+=' bookable';
+    if(key===todayKey())cls+=' today';
+    if(isSel)cls+=' selected';
+    div.className=cls;
+    if(bookable)div.onclick=()=>{selected=key;render();renderPanel();};
+
+    let html=`<div class="day-num">${c.d}</div><div class="events">`;
+    evs.slice(0,2).forEach(ev=>{html+=`<div class="ev-pill">${ev.time} ${ev.name}</div>`;});
+    if(evs.length>2)html+=`<div class="more-ev">+${evs.length-2}</div>`;
+    if(hasSlots&&evs.length===0)html+=`<span class="avail-dot"></span>`;
+    html+=`</div>`;
+    div.innerHTML=html;
+    grid.appendChild(div);
+  });
+}
+
+function buildTimeSelect(key){
+  const sel=document.getElementById('ev-time');sel.innerHTML='';
+  getFutureSlots(key).forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});
+}
+
+function renderPanel(){
+  const t=document.getElementById('panel-title');
+  const s=document.getElementById('panel-sub');
+  const l=document.getElementById('ev-list');
+  const f=document.getElementById('add-form');
+  document.getElementById('error-msg').style.display='none';
+
+  if(!selected){
+    t.textContent=' Choisis un jour !';s.textContent='';
+    l.innerHTML='<p class="empty-msg">Disponible le mar · mer · jeu · dim à partir de 16h30 </p>';
+    f.style.display='none';return;
+  }
+  const[y,m,d]=selected.split('-').map(Number);
+  const dow=new Date(y,m-1,d).getDay();
+  t.textContent=`📅 ${DAYS_FR[dow]} ${d} ${MONTHS[m-1]} ${y}`;
+
+  const past=isPast(y,m-1,d),allowed=isAllowed(y,m-1,d);
+  const evs=events[selected]||[];
+  l.innerHTML='';
+
+  if(past||!allowed){
+    s.textContent='';
+    const msg=document.createElement('div');msg.className='blocked-msg';
+    if(past)msg.innerHTML=`<span style="font-size:1.5rem">🔒</span><span>Ce jour est passé !</span>`;
+    else msg.innerHTML=`<span style="font-size:1.5rem"></span><span>Jour non dispo.<br>Mar · Mer · Jeu · Dim seulement !</span>`;
+    l.appendChild(msg);f.style.display='none';return;
+  }
+
+  const slots=getFutureSlots(selected);
+  s.textContent=slots.length>0?`${slots.length} créneau${slots.length>1?'x':''} dispo · à partir de 16h30 `:'Plus de créneaux disponibles ce jour 😢';
+
+  if(evs.length===0)l.innerHTML='<p class="empty-msg">Aucun RDV — réserve un créneau ! </p>';
+  evs.forEach((ev,i)=>{
+    const row=document.createElement('div');row.className='ev-row';
+    const gc=gcalUrl(ev.name,selected,ev.time);
+    row.innerHTML=`
+      <div class="ev-dot"></div>
+      <div class="ev-info"><div class="ev-name"> ${ev.name}</div><div class="ev-time">${ev.time}</div></div>
+      <div class="ev-actions">
+        <a class="gcal-inline" href="${gc}" target="_blank" rel="noopener">📅 Gcal</a>
+        <button class="ev-del" onclick="removeEvent('${ev.id}','${selected}')">✕</button>
+      </div>`;
+    l.appendChild(row);
+  });
+
+  if(slots.length>0){f.style.display='flex';buildTimeSelect(selected);}
+  else f.style.display='none';
+}
+
+async function addEvent(){
+  const name=document.getElementById('ev-name').value.trim();
+  const err=document.getElementById('error-msg');
+  if(!name){err.textContent='Entre ton prénom ';err.style.display='block';return;}
+  err.style.display='none';
+  const time=document.getElementById('ev-time').value;
+  const btn=document.getElementById('add-btn');
+  btn.disabled=true;btn.textContent='⏳ Réservation…';
+  try{
+    const row=await insertEv(selected,time,name);
+    if(!events[selected])events[selected]=[];
+    events[selected].push({id:row.id,name:row.name,time:row.time});
+    events[selected].sort((a,b)=>a.time.localeCompare(b.time));
+    document.getElementById('ev-name').value='';
+    render();renderPanel();
+    openModal(selected,row);
+  }catch(e){err.textContent='Erreur 😢 Réessaie !';err.style.display='block';}
+  btn.disabled=false;btn.textContent=' Réserver !';
+}
+
+async function removeEvent(id,key){
+  try{
+    await deleteEv(id);
+    events[key]=(events[key]||[]).filter(e=>e.id!==id);
+    if(!events[key].length)delete events[key];
+    render();renderPanel();
+  }catch(e){alert('Erreur 😢');}
+}
+
+document.getElementById('ev-name').addEventListener('keydown',e=>{if(e.key==='Enter')addEvent();});
+
+(async()=>{
+  document.getElementById('ev-list').innerHTML='<p class="loading-bar"> Chargement…</p>';
+  await loadAll();render();
+})();
+</script>
+</body>
+</html>
